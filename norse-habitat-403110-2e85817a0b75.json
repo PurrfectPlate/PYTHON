@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "norse-habitat-403110",
+  "private_key_id": "2e85817a0b7585f235f2f67f7cc03e8ee55739ad",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDAoP+9Lb+vFiu0\nhI4Zh+4IaUhlIwlonuGfz6QJ+UDZMvY/p4M4+RDyDNmohOwvm54hcC17OIv7tQP/\ndUQtftYdHAo5vguwY4mn3dUEcCVq/tT6w7ovGz5rYBQS6ti95F1p9Uf4af++NrqD\nIEylS9Jj3LmXFPrgD0lonpP15XgKkM/SHlr3XRUBMHv/cDba/NAx1Ann/RYtkv/J\n6WBKkWrKufYtt+4bIBEWe56M6eZNGZgT+J5ZYzCAVSUhHFCGTKcUAZmMyqyXh3X6\nbzu6yHwyLGqgpbfIX9S5N3YMbyfdIFL+5MnuoMzoQ8YQCE8WVIUkMqrmJagO+3i9\nBHookDBfAgMBAAECggEAXRdxgENzt3HHfV3yLnR6nKYEzpu4GE9wSoNWi1th85Wl\nW+3ghNAZWGDNb5uNaRSTvyUvVbVmMSax3+sUH8iEQV0js/QcQgpYpD+YiqSH8MVm\nuCmO+OT5rXqpONs2E88hNevL9EmFxq88Q9KAOAIEky5AorsI4u+AUocQim1zLecm\n0NOq45WZguMYJyND4rm+kOKn/c/KoWczo/VqNH3rzN5w4BUmA2Q9FEeRUSyFd33y\niLAoIjUpfS5086cnI5G4zW0H+jSb8TsrwOKnHNlCqTe3QIS7SpJycuiedgcZnCZi\n0wEAzqtyY61JJbxZYBX7MHwZ9VCTW7HC+/Zx4XvRAQKBgQDu+hlspamfWq/IgO6/\nw/TcVRJAnZXhrjEu8c44rNzNaUNydxqyT/jt9/AfEQ+e8DO1NeSRSLU16qqgLjLQ\nPEYgJ+4O9TEwmJoLym/yypDsbAf8ZvrIsUfeXUCAhZQfPv36yhFfhPKK3BLLewyn\nAXmxHSD5d+Of8Q3RF8pSLGblbwKBgQDOWbZ3BbfhT11e5a4O3qoNQOjmcyR4MJul\n8nre2uAhZktnFGQm1qUIJpcXkI/tcvwtsYEATraMkwPuRHu+7Od0HLhjSItnII8p\nKykOndVoT0XbgOTXTMgxSdWU/wTPCqNrdvHn3HzIS28lPCgWS7GtHO5Ng+ZFDzVg\nZ8k1LUJMEQKBgHkgpzZcmac9zg9w2pK0fi4XqJK7zTaAlklXItGzPI+ZJSilmhB7\nXI8xtrHoceR7l5nn4RyKn97ePPHHuNW3V0wBMTa/rNkW4C3NxARqDB7pevrCL6b9\nxJG+7my2SCe2RAGT3k5uEomzloswqW8U3luZihcoX2W4RuqOhmw0OUtdAoGAUUMx\nQUQmOvu3SJTo7AAyNc/3KDH2DcMOuNZ6HuNRWrXfQfPc0RK8oS4ZWHVcyOT8fL4n\nkEhvSYLoDGA532GKcMaSsr6x72X6GvtdSt1LWq3FVAE5nbQmLormKqwXZ7XHz51i\n/K1vEq3qUl6TZtxeV09KZYppF486tQGKUn/FWRECgYEA6F1N+b+U5n6T8ugDDQ61\nGnr1uB3IXDtsZXiWoACTR5RSkZ3s4ikju7+b06QMnXEk1A+/UaRkyg+dVGi9m3hG\n3el0xURKW5P5InITXiMAuk5tm2N9yhDWYPoKt+JV6q+BTNDLDCdG8MzMfd9CU3Vf\nyXeu2qqdDRr/qQFqnnK4JHM=\n-----END PRIVATE KEY-----\n",
+  "client_email": "pythonpurrfectplate@norse-habitat-403110.iam.gserviceaccount.com",
+  "client_id": "108480056089614510026",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/pythonpurrfectplate%40norse-habitat-403110.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
