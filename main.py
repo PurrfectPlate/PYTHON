@@ -19,7 +19,12 @@ feedingSched = feedingSchedule()
 tasks_done = threading.Event()
 
 
-
+#####################################################################################
+#
+#   FOR TASKS
+#   TAKES DATA FROM FIRESTORE DATABASE
+#
+#####################################################################################
 def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
     
     for doc in col_snapshot:
@@ -33,19 +38,18 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
                 print("There's an error")
         
         elif type.lower() == "speak_to_pet":
-                break
+            break
             
         elif type.lower() == "livestream":
             #jsonKeyFile = livestream_collection.document(doc_id).get().to_dict()["jsonKeyFile"]
-            doc_id = doc.get("document_id")
-            youtubeManager = YouTubeLivestreamManager(doc_id)
+            #doc_id = doc.get("document_id")
+            #youtubeManager = YouTubeLivestreamManager(doc_id)
             
-            title = 'Your Livestream Title'
-            description = 'Your Livestream Description'
+            #title = 'Your Livestream Title'
+            #description = 'Your Livestream Description'
 
-            livestream_id = youtubeManager.start_livestream(title, description)
-            print(f"Livestream started with ID: {youtubeManager.livestream_id}")
-
+            #livestream_id = youtubeManager.start_livestream(title, description)
+            print(f"Livestream started with ID")
             pass
         
         elif type.lower() == "refresh_pet":
@@ -53,6 +57,8 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
             
         
     tasks_done.set()
+
+
 
 # Function to connect to WiFi
 def connect_to_wifi(wifi_name, wifi_password):
@@ -101,8 +107,8 @@ def read_settings_and_connect():
 query_watch = None
 
 if __name__ == "__main__":
-    check_settings_file()
-    read_settings_and_connect()
+    #check_settings_file()
+    #read_settings_and_connect()
     query_watch = tasks_collection.on_snapshot(tasks_RealtimeUpdate)
     try:
         while True:

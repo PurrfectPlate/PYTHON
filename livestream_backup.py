@@ -4,11 +4,16 @@ import signal
 
 class Livestream:
     
-
-    stream_key = 'vjdd-1at1-vw41-zjwd-8bh3'
+    
+    stream_key = 'mfgf-w1qd-04kd-bqg1-4vgj'
     stream_url = 'rtmp://a.rtmp.youtube.com/live2'
     credentials = None
     ffmpeg_process = None
+    def __init__(self):
+        self.stream_key = 'mfgf-w1qd-04kd-bqg1-4vgj'
+        self.stream_url = 'rtmp://a.rtmp.youtube.com/live2'
+        self.credentials = None
+        self.ffmpeg_process = None
 
     def __init__(self, url, key, credentials):
         self.stream_key = key
@@ -55,9 +60,10 @@ class Livestream:
             finally:
                 self.ffmpeg_process = None
 
-    # Example usage:
-    # run_livestream()  # Start the livestream
-    # (Do some streaming...)
-    # stop_livestream()  # Stop the livestream
+livestream = Livestream('mfgf-w1qd-04kd-bqg1-4vgj', 'rtmp://a.rtmp.youtube.com/live2', None)
 
-    # Make sure to call stop_livestream when you want to end the stream
+if __name__ == "__main__":
+    try:
+        livestream.run_livestream()
+    except KeyboardInterrupt:
+        livestream.stop_livestream()
