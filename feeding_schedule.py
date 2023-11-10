@@ -3,7 +3,7 @@ import json
 import schedule
 import time
 from datetime import datetime
-from uln2003 import ULN2003
+#from uln2003 import ULN2003
 from multiprocessing import Process
 
 class feedingSchedule:
@@ -89,11 +89,10 @@ class feedingSchedule:
 
     # Function to feed the pet
     def feed_pet(self, petname, cups):
-        feeder_motor = ULN2003()
+        #feeder_motor = ULN2003()
         
-        
-        p1 = Process(target = stepper1.turn_stepper,args=(2,0.002))
-        p1.start()
+        #p1 = Process(target = feeder_motor.turn_stepper,args=(2,0.002))
+        #p1.start()
         print(f"Feeding {petname} with {cups} cups")
 
     # Function to schedule pet feeding

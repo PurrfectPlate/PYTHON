@@ -1,5 +1,6 @@
 import os
 import hashlib
+import firestoreDB
 
 def get_mac_address():
     try:
@@ -9,21 +10,13 @@ def get_mac_address():
         return None
 
 def get_username():
-    # Getting the node ID of the Orange Pi
+    # Get MAC Address
     motherboard_id = get_mac_address()
-
-    print(motherboard_id)
-    # Generating a random UUID as the salt value
-    salt = "kiri"
-
-    # Assuming the model name is "OrangePiPlus"
-    model_name = "OPOH3"
 
     # Creating a hash based on the concatenation of salt and node ID
     hashed_value = hashlib.sha256((motherboard_id).encode()).hexdigest()
 
-    # Concatenating the prefix "op_" with the lowercased model name and the truncated hash
-    username = "PurrfectPlate_" + model_name.lower() + "_" + hashed_value[:7]
+    username = "PurrfectPlate_" + hashed_value[3:7]
 
     return username
 
@@ -33,9 +26,13 @@ def get_password():
     motherboard_id = get_mac_address()
     salt = "kiripass"
     
-    password = hashlib.sha256(motherboard_id.encode()).hexdigest()
+    password = motherboard_id.replace(':','')[:6] + hashlib.sha256((motherboard_id+salt).encode()).hexdigest()[:7]
     
     return password
 
-print("Username: " + get_username())
-print("Password: " + get_password())
+def upload_credentials(username, password):
+    credentials_document = firestoreDB.db.collection("Device_Authorization").document(username)
+    data = {"DeviceName": username, "Password": password}
+    credentials_document.set(data)
+    print("USERNAME AND PASSWORD UPLOADED")
+    
