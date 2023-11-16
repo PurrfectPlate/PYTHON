@@ -71,7 +71,8 @@ class feedingSchedule:
 
 
             self.schedule_feeding(self.get_local_schedules())
-        except:
+        except Exception as e:
+            print(e)
             return 1
         return 0
         
@@ -105,15 +106,12 @@ class feedingSchedule:
                 time_str = schedule_time["time"]
                 cups = schedule_time["cups"]
                 
-                # Parse the time string into a datetime object
-                scheduled_time = datetime.strptime(time_str, "%H:%M").time()
-                
-                # Get the current time
-                current_time = datetime.now().time()
-                
                 # Schedule future events
-                if days == "Everyday" or time_str == "Everyday":
+                if(days.lower() == "everyday"):
                     self.schedule.every().day.at(time_str).do(self.feed_pet, petname, cups)
+                else:
+                    getattr(self.schedule.every(), days.lower()).at(time_str).do(self.feed_pet, petname, cups)
+        print(f"SCHEDULES: {schedule.get_jobs()}")
 
 
     ####################################################################################################

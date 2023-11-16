@@ -47,8 +47,7 @@ def connect_to_wifi():
 
             print_colored("Connected to the network!", GREEN)
             return 0
-            break
-
+        
         except (ValueError, IndexError):
             print_colored("Invalid input. Please try again.", RED)
             time.sleep(2)

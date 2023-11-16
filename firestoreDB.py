@@ -23,3 +23,24 @@ def AddNewDocument(collectionName, documentName, data):
     doc_ref = db.collection(collectionName).document(documentName)
     doc_ref.set(data)
 
+def get_document_by_id(collection_name, document_id):
+    doc_ref = db.collection(collection_name).document(document_id)
+    doc = doc_ref.get()
+    if doc.exists:
+        return doc.to_dict()
+    else:
+        print(f"Document {document_id} does not exist in {collection_name} collection.")
+        return None
+
+def get_document_by_id(collection_name, document_id):
+    doc_ref = db.collection(collection_name).document(document_id)
+    doc = doc_ref.get()
+    if doc.exists:
+        return doc.to_dict()
+    else:
+        print(f"Document {document_id} does not exist in {collection_name} collection.")
+        return None
+
+def get_field(collection_name, document_id, field_name):
+    document = get_document_by_id(collection_name, document_id)
+    return document.get(field_name)

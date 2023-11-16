@@ -5,6 +5,7 @@ from wifi import connect_to_wifi
 from deviceCredentials import get_password
 from deviceCredentials import get_username
 from deviceCredentials import upload_credentials
+from google.cloud.firestore import FieldFilter
 
 settings_file_path = '/home/kiritian/settings.json'
  
@@ -25,19 +26,33 @@ tasks_done = threading.Event()
 #   TAKES DATA FROM FIRESTORE DATABASE
 #
 #####################################################################################
+
+def schedule_feeding():
+    if feedingSched.update(scheds_collection.where(filter=FieldFilter("DeviceName", "==", get_username())).get()) == 0:
+        print("SCHEDULE REFRESHED")
+    else:
+        print("There's an error")
+
 def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
     
+    
     for doc in col_snapshot:
+        
+        if(doc.get("deviceName") != get_username()):
+            print("Not for this device")
+            continue
+        
+        print(doc)
+        
         type = doc.get("type")
         
         if type.lower() == "schedule":  
-            if feedingSched.update(scheds_collection.get()) == 0:
-                doc.reference.delete()
-                break
-            else:
-                print("There's an error")
+            schedule_feeding()
+            doc.reference.delete()
+            break
         
         elif type.lower() == "speak_to_pet":
+            print("Playing audio...")
             break
         
         elif type.lower() == "livestream":
@@ -53,6 +68,7 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
             pass
         
         elif type.lower() == "refresh_pet":
+            print("Refreshing Pet...")
             pass
             
         
@@ -69,9 +85,10 @@ if __name__ == "__main__":
         print(f"Username: {get_username()}")
         print(f"Password: {get_password()}")
         upload_credentials(get_username(), get_password())
+        schedule_feeding()
         while True:
             feedingSched.schedule.run_pending()
-            feedingSched.time.sleep(1)
+            feedingSched.time.sleep(5)
             
     except KeyboardInterrupt:
             
