@@ -4,7 +4,7 @@ import firestoreDB
 
 def get_mac_address():
     try:
-        mac_address = os.popen("cat /sys/class/net/enp2s0/address").read().strip()
+        mac_address = os.popen("cat /sys/class/net/e*/address").read().strip()
         return mac_address
     except:
         return None
@@ -32,7 +32,7 @@ def get_password():
 
 def upload_credentials(username, password):
     credentials_document = firestoreDB.db.collection("Device_Authorization").document(username)
-    data = {"DeviceName": username, "Password": hashlib.sha256(password.encode()).hexdigest()}
+    data = {"DeviceName": username, "Password": hashlib.sha256(password.encode()).hexdigest(), "Token" : 0}
     credentials_document.set(data)
     print("USERNAME AND PASSWORD UPLOADED")
     
