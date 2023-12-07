@@ -2,6 +2,7 @@ import OPi.GPIO as GPIO
 import time
 import orangepi.one
 import sys
+from serial_communication import SerialCommunication
 
 class ULN2003:
     def __init__(self, in1=31, in2=33, in3=35, in4=37):
@@ -16,10 +17,10 @@ class ULN2003:
         GPIO.setup(self.IN3, GPIO.OUT)
         GPIO.setup(self.IN4, GPIO.OUT)
 
-    def turn_stepper(self, steps, delay=0.002):
-        full_rotate = 512
-        rotate_times = 512 * steps
-        for _ in range(rotate_times):
+            
+    def turn_stepper_forward(self, rotate_times = 0, delay=0.002):
+        
+        for _ in range(int(rotate_times)):
             GPIO.output(self.IN1, GPIO.HIGH)
             GPIO.output(self.IN2, GPIO.LOW)
             GPIO.output(self.IN3, GPIO.LOW)
@@ -37,9 +38,41 @@ class ULN2003:
             GPIO.output(self.IN3, GPIO.LOW)
             GPIO.output(self.IN4, GPIO.HIGH)
             time.sleep(delay)
-            
+    
+    
+    def turn_stepper_backward(self, rotate_times, delay=0.002):
+        
+        for _ in range(int(rotate_times)):
+            GPIO.output(self.IN1, GPIO.LOW)
+            GPIO.output(self.IN2, GPIO.LOW)
+            GPIO.output(self.IN3, GPIO.LOW)
+            GPIO.output(self.IN4, GPIO.HIGH)
+            time.sleep(delay)
 
+            GPIO.output(self.IN3, GPIO.HIGH)
+            GPIO.output(self.IN4, GPIO.LOW)
+            time.sleep(delay)
+
+            GPIO.output(self.IN2, GPIO.HIGH)
+            GPIO.output(self.IN3, GPIO.LOW)
+            time.sleep(delay)
+
+            GPIO.output(self.IN2, GPIO.LOW)
+            GPIO.output(self.IN1, GPIO.HIGH)
+            time.sleep(delay)
+    
+    def turn_stepper(self, steps, delay=0.002):
+        rotate_times = 512 * int(steps)
+        for i in range(4):
+            self.turn_stepper_forward(rotate_times/8)
+            self.turn_stepper_backward(rotate_times/8)
+    
 GPIO.cleanup()
 
-
-
+if __name__ == "__main__":
+    stepper = ULN2003(in1=8, in2=10,in3=12,in4=16)
+    
+    #stepper = ULN2003()
+    stepper.turn_stepper(12)
+    
+    

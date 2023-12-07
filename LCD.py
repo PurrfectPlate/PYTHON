@@ -238,7 +238,7 @@ def check_ip_address(lcd):
             lcd.write_text(wifi_ip)
 
         if not wifi_interfaces:
-            lcd.write_text("No WiFi interfaces found.")
+            lcd.write_text("No interfaces found.")
 
     except subprocess.CalledProcessError as e:
         # Handle error if the command fails

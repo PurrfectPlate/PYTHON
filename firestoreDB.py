@@ -4,7 +4,7 @@ from firebase_admin import firestore
 import os
 
 
-keyFileName = '/home/kiritian/PYTHON/purrfectplateKey.json'
+keyFileName = '/home/purrfectplate/PYTHON/purrfectplateKey.json'
 fullPath = keyFileName
 
 # Use a service account.

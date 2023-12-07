@@ -7,7 +7,7 @@ class SerialCommunication:
         self.baudrate = baudrate
         self.serial_connection = serial.Serial(port=self.port, baudrate=self.baudrate)
 
-    def get_latest_message(self):
+    def get_next_message(self):
         try:
             if self.serial_connection.is_open:
                 message = self.serial_connection.readline().decode('utf-8').strip()
@@ -28,13 +28,30 @@ class SerialCommunication:
             print(f"Message sent: {message}")
         else:
             print("Serial connection is not open.")
+    
+    def startRFID(self):
+        self.send_message("StartRFID")
+
+    def stopRFID(self):
+        self.send_message("StopRFID")
+        self.serial_connection.reset_input_buffer()
+    
+    def startWeightSensor(self):
+        self.send_message("StartWeightSensor")
+
+    def stopWeightSensor(self):
+        self.send_message("StopWeightSensor")
+        self.serial_connection.reset_input_buffer()
 
 if __name__ == "__main__":
     try:
         ser = SerialCommunication()
-        print("Receiving Data: ")
+        ser.send_message("StartRFID")
+        count = 0
         while True:
-            ser.send_message("Oten Message")
-            time.sleep(1)  
+            last_message = ser.get_next_message()
+
+            print(last_message)
+
     except Exception as e:
         print(e)
