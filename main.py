@@ -4,6 +4,7 @@ import LCD
 import keyboard
 import time
 from livestream import Livestream
+from livestream import stop_livestream
 from lcd_i2c import LCD_I2C
 from serial_communication import SerialCommunication
 from feeding_schedule import feedingSchedule
@@ -36,7 +37,6 @@ scheds_collection = firestoreDB.db.collection("feeding_schedule")
 livestream_collection = firestoreDB.db.collection("Livestream")
 tasks_collection = firestoreDB.db.collection("Task")
 
-livestream_instance = Livestream()
 # Create an Event for notifying main thread.
 
 feedingSched = feedingSchedule(lcd2)
@@ -101,8 +101,13 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
                 if doc_request == 'Start':
                     lcd2.clear()
                     lcd2.write_text("Starting Livestream...")
-                    livestream_instance.stop_livestream()
-                    livestream_instance.run_livestream()
+                    #stop_livestream()
+                    #time.sleep(1)
+                    try:
+                        livestream_thread = threading.Thread(target=livestream_instance.run_livestream)
+                        livestream_thread.start()
+                    except Exception as e:
+                        print("Error: {e}")
                     doc_data['isliveNow'] = True
                     livestream_document.reference.update(doc_data)
                     lcd2.clear()
@@ -110,9 +115,10 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
                 elif doc_request == 'Stop':
                     lcd2.clear()
                     lcd2.write_text("Stopping Livestream...")
-                    livestream_instance.stop_livestream()
+                    stop_livestream()
                     doc_data['isliveNow'] = False
-                    doc_data['youtube_url'] = ""
+                    doc_data['ended'] = True
+                    doc_data['Youtube_url'] = ""
                     livestream_document.reference.update(doc_data)
                     lcd2.clear()
                     lcd2.write_text("Stopped Livestream!")
@@ -120,6 +126,7 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
                 print("There's an error trying to livestream")
                 lcd2.clear()
                 lcd2.write_text("Error with Livestream.")
+            doc.reference.delete()
             pass
         
         elif type.lower() == "refresh_pet":
@@ -127,7 +134,9 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
             pass
 
         elif type.lower() == "request_rfid":
+            
             ser = SerialCommunication("/dev/ttyS1")
+            
             ser.startRFID()
             
             lcd2.clear()
@@ -253,7 +262,7 @@ if __name__ == "__main__":
         upload_credentials(get_username(), get_password())
         schedule_feeding()
         
-        options_list = ['Configure WiFi', 'Check IP Address', 'Check User/Pass']
+        options_list = ['Configure WiFi', 'Check IP Address', 'Check User/Pass', 'FORCE STOP LIVE']
         max_length = 15
         options_list = [f'{option:<{max_length}}' for option in options_list]
         
@@ -286,6 +295,10 @@ if __name__ == "__main__":
                         show_credentials(lcd)
                         reset()
                         break
+                    case 3:
+                        stop_livestream()
+                        reset()
+                        break
             
             elif keyboard.is_pressed('up'):
                 selected_option = max(0, selected_option - 1)
@@ -306,4 +319,5 @@ if __name__ == "__main__":
         lcd.backlight.off()
         query_watch.unsubscribe() 
         tasks_done.set()
+        GPIO.cleanup()
         print("Program terminated.")

@@ -53,6 +53,7 @@ def configure_wifi(lcd):
         lcd.clear()
         lcd.write_text("Configure wifi?")
         lcd.cursor.setPos(1,0)
+        lcd.cursor.off()
         lcd.write_text('(Y)       (N)')
         while True:
             if keyboard.is_pressed('y'):

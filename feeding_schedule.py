@@ -1,5 +1,7 @@
+import multiprocessing
 import os
 import json
+import threading
 import schedule
 import time
 from datetime import datetime
@@ -21,6 +23,8 @@ class feedingSchedule:
         self.schedule = schedule
         self.time = time
         self.lcd = lcd
+        self.audio = [None, None]
+        self.notif = NotificationSender(firestoreDB.db)
 
     def get_local_schedules(self):
         return self.local_schedules
@@ -98,35 +102,65 @@ class feedingSchedule:
     ####################################################################################################
 
     def lcd_write(self, message, slot):
-        
+        # Define the maximum length for each line on the LCD
+        max_length = 13
+
+        if len(message) > max_length:
+            # If the message is longer than the LCD width, truncate it
+            message = message[:max_length]
+        else:
+            # If the message is shorter, pad it with spaces
+            message = message.ljust(max_length)
+
         if slot == 1:
-            self.lcd.cursor.setPos(0,0)
+            self.lcd.cursor.setPos(0, 0)
             self.lcd.write_text(f"1: {message}")
         elif slot == 2:
-            self.lcd.cursor.setPos(1,0)
+            self.lcd.cursor.setPos(1, 0)
             self.lcd.write_text(f"2: {message}")
 
-    def turn_stepper(self, petname, stepper, cups, rfid, weight, slot = 1):
 
-        p1 = Process(target = stepper.turn_stepper,args=(int(cups)/4,))
-        p1.start()
-        print(f"TURNING STEPPER MOTOR WITH {int(cups)/4}")
-        self.lcd_write("Releasing Food...", slot)
+    def turn_stepper(self, petname, cups, rfid, weight, slot = 1):
+
+        #p1 = Process(target = stepper.turn_stepper,args=(int(cups)/4,))
+        #p1.start()
+        #print(f"TURNING STEPPER MOTOR WITH {int(cups)/4}")
+        #self.lcd_write("Releasing Food...", slot)
+        timer_seconds = 60
+        stepper = None
+        
         if(slot == 1):
             ser = SerialCommunication(port="/dev/ttyS1")
+            stepper = ULN2003()
         else:
             ser = SerialCommunication(port="/dev/ttyS2")
+            stepper = ULN2003(in1=8, in2=10,in3=12,in4=16)
         ser.startRFID()
         print(f"Ready to Take RFID on {ser.port}")
         self.lcd_write("Taking RFID", slot)
-        notif = NotificationSender(firestoreDB.db)
+        possible_pets = []
+        
         start_time = time.time()
+        seconds = timer_seconds
         while True:
-            elapsed_time = time.time() - start_time
-            if elapsed_time >= 540:  # 540 seconds = 9 minutes
-                p1.terminate()  # Stop the turn_stepper process
-                notif.fed_a_pet(petname, cups, "", get_username(), successful= False)
-                return
+            print(int(time.time() - start_time))
+            if int(time.time() - start_time) > seconds:
+                ser.stopRFID()
+                ser.stopWeightSensor()
+                self.notif.fed_a_pet(petname, cups, get_username(), successful= False,special_message="RFID not read.")
+                
+                if len(possible_pets) > 0:
+                    self.notif.potential_food_consumption(possible_pets,petname,get_username())
+                    possible_pets.clear()
+                return -1
+            
+            if self.audio[0] is not None and self.audio[1] is not None:
+                if not (self.audio[0].isPlaying or self.audio[1].isPlaying):
+                    print(f"SOUND: PLAYING ON SLOT {int(slot)}")
+                    self.audio[int(slot) - 1].play_sound()
+            else:
+                # Handle the case when one or both elements are None
+                pass  # Or raise an error, log a message, etc.
 
             rfid_message = ser.get_next_message()
             
@@ -135,87 +169,128 @@ class feedingSchedule:
                 continue
             try:
                 received_rfid = rfid_message.split(":")[1].strip()
+                if received_rfid.upper() == "NONE":
+                    continue
             except:
                 continue
 
-            if received_rfid == rfid:
+            if received_rfid.upper() == rfid.upper():
                 ser.stopRFID()
                 print(f"RFID MATCHED: {received_rfid}")
-                stepper.turn_stepper((int(cups)/4)*3)
-                print("TURNING MOTOR AGAIN TO FULL")
+                self.lcd_write("RFID MATCHED!", slot)
+                
+                #stepper.turn_stepper(int(cups))
+                cups = int(cups)
+                process = multiprocessing.Process(target=stepper.turn_stepper, args=(cups,))
+                process.start()
+                
+                self.lcd_write("DISPENSING...", slot)
+                print("TURNING MOTOR TO FULL")
                 break
             else:
                 print("RFID does not match. Stepper will not turn.")
+                print(received_rfid)
+                if received_rfid not in possible_pets:
+                    possible_pets.append(received_rfid)
         
         ser.startWeightSensor()
         print("Weight Sensor Starting...")
+        self.lcd_write("Track Weight...", slot)
         weightData = []
         weight = float(weight)
+        seconds = timer_seconds - int(time.time() - start_time)
+        start_time = time.time()
         while True:
+            
+            print(seconds - (int(time.time() - start_time)))
+            
+            if int(time.time() - start_time) > seconds:
+                ser.stopRFID()
+                ser.stopWeightSensor()
+                self.notif.fed_a_pet(petname, cups, get_username(), successful= False,special_message="Weight wasn't received.")
+                
+                if len(possible_pets) > 0:
+                    self.notif.potential_food_consumption(possible_pets,petname,get_username())
+                    possible_pets.clear()
+                return -1
+            
             weight_message = ser.get_next_message()
+            
 
             try:
                 weight_value = float(weight_message.split(":")[1].strip())
+                if(weight_value == "None"):
+                    print("NONE WEIGHT")
+                    continue
             except:
                 continue
 
             if 0.9 * weight <= weight_value <= 1.1 * weight:
                 weightData.append(weight_value)
                 print(f"Appended {weight_value}")
+                self.lcd_write(f"Weight: {weight_value}", slot)
 
             if len(weightData) == 20:
                 print("Already got 20")
+                ser.stopWeightSensor()
                 break
 
         average_weight = sum(weightData) / len(weightData)
-        notif.fed_a_pet(petname, cups, get_username(), successful= True)
+        ser.stopWeightSensor()
+        ser.stopRFID()
+        self.notif.fed_a_pet(petname, cups, get_username(), successful= True)
         return average_weight
+    
+
 
 
     # Function to feed the pet
     def feed_pet(self, document_id, cups, feed_slot = 2):
-        print("FEEDING A PET")
+        try:
+            print("FEEDING A PET")
 
-        feeder_motor = None
-        audio = AudioPlayer(document_id, collection_name = "List_of_Pets")
-        pet_document = firestoreDB.get_document_by_id("List_of_Pets", document_id)
-        pet_ref = firestoreDB.db.collection("List_of_Pets").document(document_id)
-        doc_data = pet_document.to_dict()
+            self.audio[feed_slot - 1] = AudioPlayer(document_id, collection_name = "List_of_Pets", slot = int(feed_slot - 1))
+            pet_document = firestoreDB.get_document_by_id("List_of_Pets", document_id)
+            pet_ref = firestoreDB.db.collection("List_of_Pets").document(document_id)
+            doc_data = pet_document.to_dict()
+                
+            weight = self.turn_stepper(doc_data['Petname'], cups, doc_data["Rfid"], doc_data["Weight"], feed_slot)
             
-        
-        if feed_slot == 1:
-            feeder_motor = ULN2003()
-        else:
-            feeder_motor = ULN2003(in1=8, in2=10,in3=12,in4=16)
-        
+            if(weight <= 0):
+                print("There was an error on feeding")
+                return 0
+            
+            if round(float(doc_data['GoalWeight'])) < round(float(weight)):
+                print("GOAL WEIGHT PASSED!")
+                pass
 
-        weight = self.turn_stepper(doc_data['Petname'], feeder_motor, cups, doc_data["Rfid"], doc_data["Weight"], feed_slot)
-        
-        if doc_data['GoalWeight'] < weight:
-            #TO IMPLEMENT NOTIFICATION OF GOALWEIGHT
-            pass
-
-        pet_ref.update({"Weight" : weight})
-        print("Weight successfully changed.")
-        
+            pet_ref.update({"Weight" : weight})
+            print("Weight successfully changed.")
+            
+            return 0
+        except Exception as e:
+            print(f"Error on feed_pet: {e}")
+        finally:
+            print(f"DONE FEEDING SLOT {feed_slot}")
 
     # Function to schedule pet feeding
     def schedule_feeding(self, pet_data):
         print(f"Pet data: {pet_data}")
+        self.schedule.clear()
         for entry in pet_data:
             documentID = entry['petId']
-            petname = entry["Petname"]
             days = entry["Days"]
             feeder_slot = entry['Slot']
             for schedule_time in entry["ScheduleTime"]:
                 time_str = schedule_time["time"]
                 cups = schedule_time["cups"]
                 
+                thread = threading.Thread(target=self.feed_pet, args=(documentID, cups, feeder_slot))
                 # Schedule future events
                 if(days.lower() == "everyday"):
-                    self.schedule.every().day.at(time_str).do(self.feed_pet, documentID, cups, feeder_slot)
+                    self.schedule.every().day.at(time_str).do(thread.start)
                 else:
-                    getattr(self.schedule.every(), days.lower()).at(time_str).do(self.feed_pet, documentID, cups, feeder_slot)
+                    getattr(self.schedule.every(), days.lower()).at(time_str).do(thread.start)
         print(f"SCHEDULES: {schedule.get_jobs()}")
 
 

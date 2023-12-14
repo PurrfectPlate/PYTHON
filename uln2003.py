@@ -18,7 +18,7 @@ class ULN2003:
         GPIO.setup(self.IN4, GPIO.OUT)
 
             
-    def turn_stepper_forward(self, rotate_times = 0, delay=0.002):
+    def turn_stepper_forward(self, rotate_times = 0, delay=0.0016):
         
         for _ in range(int(rotate_times)):
             GPIO.output(self.IN1, GPIO.HIGH)
@@ -62,17 +62,21 @@ class ULN2003:
             time.sleep(delay)
     
     def turn_stepper(self, steps, delay=0.002):
-        rotate_times = 512 * int(steps)
-        for i in range(4):
-            self.turn_stepper_forward(rotate_times/8)
-            self.turn_stepper_backward(rotate_times/8)
-    
+        rotate_times = 512 * steps
+        while rotate_times > 0:
+            self.turn_stepper_forward(min(512,max(rotate_times, 0)))
+            rotate_times -= 512
+            print(rotate_times)
+            #self.turn_stepper_backward(min(128,max(rotate_times, 0)))
+            #rotate_times -= 64
+            #print(rotate_times)
 GPIO.cleanup()
 
 if __name__ == "__main__":
     stepper = ULN2003(in1=8, in2=10,in3=12,in4=16)
     
     #stepper = ULN2003()
-    stepper.turn_stepper(12)
+    stepper.turn_stepper(20)
+    #stepper.turn_stepper_forward(512)
     
     
