@@ -38,12 +38,16 @@ class AudioPlayer:
             return
         self.isPlaying = True
         playsound(self.file_path)
+        if(self.collection_name == "Speak_To_Device"):
+            doc_ref = firestoreDB.db.collection(self.collection_name).document(self.collection_id)
+            doc_ref.delete()
         self.isPlaying = False
     
     
     def __init__(self, collection_id, collection_name = "Speak_To_Device", slot = 0):
         self.collection_id = collection_id
         self.slot = slot
+        self.collection_name = collection_name
         self.file_path = self.save_base64_as_mp3(self.get_audio(collection_name), self.slot)
         self.isPlaying = False
         #self.play_sound()

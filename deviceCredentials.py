@@ -32,7 +32,19 @@ def get_password():
 
 def upload_credentials(username, password):
     credentials_document = firestoreDB.db.collection("Device_Authorization").document(username)
-    data = {"DeviceName": username, "Password": hashlib.sha256(password.encode()).hexdigest(), "Token" : 0}
-    credentials_document.set(data)
+    data = {"DeviceName": username, "Password": hashlib.sha256(password.encode()).hexdigest()}
+    credentials_document.update(data)
     print("USERNAME AND PASSWORD UPLOADED")
-    
+    # Check if the 'Token' field exists and add it only if it doesn't exist
+    doc_snapshot = credentials_document.get()
+
+    if doc_snapshot.exists:
+        existing_data = doc_snapshot.to_dict()
+
+        if 'Token' not in existing_data:
+            credentials_document.update({"Token": 0})
+            print("Token field added")
+        else:
+            print("Token field already exists, no changes made")
+    else:
+        print("Document doesn't exist")

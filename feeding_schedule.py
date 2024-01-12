@@ -14,6 +14,7 @@ from lcd_i2c import LCD_I2C
 import firestoreDB
 from notification import NotificationSender
 from deviceCredentials import get_username
+import traceback
 
 
 class feedingSchedule:
@@ -24,6 +25,8 @@ class feedingSchedule:
         self.time = time
         self.lcd = lcd
         self.audio = [None, None]
+        self.stepper = [ULN2003(in1=8, in2=10,in3=12,in4=16), ULN2003()]
+        self.lastPlayed = 0
         self.notif = NotificationSender(firestoreDB.db)
 
     def get_local_schedules(self):
@@ -126,15 +129,12 @@ class feedingSchedule:
         #p1.start()
         #print(f"TURNING STEPPER MOTOR WITH {int(cups)/4}")
         #self.lcd_write("Releasing Food...", slot)
-        timer_seconds = 60
-        stepper = None
+        timer_seconds = 180
         
         if(slot == 1):
             ser = SerialCommunication(port="/dev/ttyS1")
-            stepper = ULN2003()
         else:
             ser = SerialCommunication(port="/dev/ttyS2")
-            stepper = ULN2003(in1=8, in2=10,in3=12,in4=16)
         ser.startRFID()
         print(f"Ready to Take RFID on {ser.port}")
         self.lcd_write("Taking RFID", slot)
@@ -143,8 +143,10 @@ class feedingSchedule:
         start_time = time.time()
         seconds = timer_seconds
         while True:
-            print(int(time.time() - start_time))
+            print(f"Remaining time for slot {slot}: {seconds - int(time.time() - start_time)} seconds.")
+            
             if int(time.time() - start_time) > seconds:
+                self.lcd_write("NO RFID DETECTED!", slot)
                 ser.stopRFID()
                 ser.stopWeightSensor()
                 self.notif.fed_a_pet(petname, cups, get_username(), successful= False,special_message="RFID not read.")
@@ -156,8 +158,21 @@ class feedingSchedule:
             
             if self.audio[0] is not None and self.audio[1] is not None:
                 if not (self.audio[0].isPlaying or self.audio[1].isPlaying):
-                    print(f"SOUND: PLAYING ON SLOT {int(slot)}")
-                    self.audio[int(slot) - 1].play_sound()
+                    if int(slot) != self.lastPlayed:
+                        try:
+                            sound_thread = threading.Thread(target=self.audio[int(slot) - 1].play_sound)
+                            sound_thread.start()
+                            self.lastPlayed = int(slot)
+                        except Exception as e:
+                            print("Error:", e)
+            elif self.audio[int(slot) - 1] is not None:
+                if not self.audio[int(slot) - 1].isPlaying:
+                    try:
+                        sound_thread = threading.Thread(target=self.audio[int(slot) - 1].play_sound)
+                        sound_thread.start()
+                        self.lastPlayed = int(slot)
+                    except Exception as e:
+                        print("Error:", e)
             else:
                 # Handle the case when one or both elements are None
                 pass  # Or raise an error, log a message, etc.
@@ -175,34 +190,31 @@ class feedingSchedule:
                 continue
 
             if received_rfid.upper() == rfid.upper():
+                self.lcd_write("RFID MATCHED!", slot)
                 ser.stopRFID()
                 print(f"RFID MATCHED: {received_rfid}")
-                self.lcd_write("RFID MATCHED!", slot)
+                self.audio[int(slot - 1)] = None
                 
-                #stepper.turn_stepper(int(cups))
                 cups = int(cups)
-                process = multiprocessing.Process(target=stepper.turn_stepper, args=(cups,))
+                process = multiprocessing.Process(target=self.stepper[int(slot) - 1].turn_stepper, args=(cups,))
                 process.start()
                 
-                self.lcd_write("DISPENSING...", slot)
+                self.lcd_write("DISPENSING FOOD", slot)
                 print("TURNING MOTOR TO FULL")
                 break
             else:
-                print("RFID does not match. Stepper will not turn.")
-                print(received_rfid)
-                if received_rfid not in possible_pets:
-                    possible_pets.append(received_rfid)
+                print(f"RFID does not match. Stepper will not turn. {received_rfid}")
         
         ser.startWeightSensor()
         print("Weight Sensor Starting...")
-        self.lcd_write("Track Weight...", slot)
+        self.lcd_write("Waiting Weight", slot)
         weightData = []
         weight = float(weight)
         seconds = timer_seconds - int(time.time() - start_time)
         start_time = time.time()
         while True:
             
-            print(seconds - (int(time.time() - start_time)))
+            print(f"Remaining time for slot {slot}: {seconds - int(time.time() - start_time)} seconds.")
             
             if int(time.time() - start_time) > seconds:
                 ser.stopRFID()
@@ -228,19 +240,51 @@ class feedingSchedule:
             if 0.9 * weight <= weight_value <= 1.1 * weight:
                 weightData.append(weight_value)
                 print(f"Appended {weight_value}")
-                self.lcd_write(f"Weight: {weight_value}", slot)
+                self.lcd_write(f"Weight:{weight_value}kg", slot)
 
             if len(weightData) == 20:
                 print("Already got 20")
+                self.lcd_write('Got Weight!', slot)
                 ser.stopWeightSensor()
                 break
 
         average_weight = sum(weightData) / len(weightData)
         ser.stopWeightSensor()
+        ser.startRFID()
+        seconds = timer_seconds - int(time.time() - start_time)
+        start_time = time.time()
+        while time.time() - start_time < seconds:
+            
+            self.lcd_write(f"Time left: {seconds - int(time.time() - start_time)}", slot)
+            print(f"Remaining time for slot {slot}: {seconds - int(time.time() - start_time)} seconds.")
+        
+            rfid_message = ser.get_next_message()
+        
+            if rfid_message == None:
+                continue
+            try:
+                received_rfid = rfid_message.split(":")[1].strip()
+                if received_rfid.upper() == "NONE":
+                    continue
+            except:
+                continue
+
+            if received_rfid.upper() != rfid.upper():
+                if received_rfid not in possible_pets:
+                    possible_pets.append(received_rfid)
+                    print("PET with RFID {received_rfid} was detected.")
+        
+        
+        self.lcd_write(f"Feeding Done!", slot)
         ser.stopRFID()
+        ser.stopWeightSensor()
+        
+        if len(possible_pets) > 0:
+            self.notif.potential_food_consumption(possible_pets,petname,get_username())
+            possible_pets.clear()
         self.notif.fed_a_pet(petname, cups, get_username(), successful= True)
         return average_weight
-    
+        
 
 
 
@@ -248,34 +292,58 @@ class feedingSchedule:
     def feed_pet(self, document_id, cups, feed_slot = 2):
         try:
             print("FEEDING A PET")
-
             self.audio[feed_slot - 1] = AudioPlayer(document_id, collection_name = "List_of_Pets", slot = int(feed_slot - 1))
             pet_document = firestoreDB.get_document_by_id("List_of_Pets", document_id)
             pet_ref = firestoreDB.db.collection("List_of_Pets").document(document_id)
             doc_data = pet_document.to_dict()
-                
+            
+            
+            self.lcd_write("FEEDING " + doc_data['Petname'], feed_slot)
             weight = self.turn_stepper(doc_data['Petname'], cups, doc_data["Rfid"], doc_data["Weight"], feed_slot)
             
             if(weight <= 0):
                 print("There was an error on feeding")
                 return 0
             
-            if round(float(doc_data['GoalWeight'])) < round(float(weight)):
-                print("GOAL WEIGHT PASSED!")
-                pass
+            
+            current_date = datetime.now()
+            
+            end_goal_month_str = doc_data['EndGoalMonth']
+            
+            if end_goal_month_str is None or end_goal_month_str.lower() == 'Invalid Date'.lower():
+                print("No goal month specified.")
+            else:
+                try:
+                    # Convert the EndGoalMonth string to a datetime object
+                    end_goal_month = datetime.strptime(end_goal_month_str, '%m/%d/%Y')
 
+                    # Compare current date with EndGoalMonth
+                    if current_date > end_goal_month:
+                        print("Failed: Current date is after EndGoalMonth.")
+                        self.notif.goal_weight_achieved(doc_data['Petname'],doc_data['GoalWeight'], get_username(), False)
+                    elif round(float(doc_data['GoalWeight'])) < round(float(weight)):
+                        self.notif.goal_weight_achieved(doc_data['Petname'],doc_data['GoalWeight'], get_username(), True)
+                except Exception as e:
+                    print("There's an error trying to get Goal Weight.")
+                    
+        
             pet_ref.update({"Weight" : weight})
             print("Weight successfully changed.")
-            
             return 0
+        
         except Exception as e:
             print(f"Error on feed_pet: {e}")
+            traceback.print_exc()
+            exception_traceback = traceback.format_exc()
+            line_number = int(exception_traceback.splitlines()[-1].split(",")[1].split(" ")[-1])
+            print(f"Exception occurred on line {line_number}")
         finally:
+            print(f"DONE FEEDING SLOT {feed_slot}")
+            self.lcd_write("DONE FEEDING", feed_slot)
             print(f"DONE FEEDING SLOT {feed_slot}")
 
     # Function to schedule pet feeding
     def schedule_feeding(self, pet_data):
-        print(f"Pet data: {pet_data}")
         self.schedule.clear()
         for entry in pet_data:
             documentID = entry['petId']

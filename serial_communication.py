@@ -31,21 +31,21 @@ class SerialCommunication:
     
     def startRFID(self):
         self.send_message("StartRFID")
-        time.sleep(1)
+        time.sleep(1.5)
 
     def stopRFID(self):
         self.send_message("StopRFID")
         self.serial_connection.reset_input_buffer()
-        time.sleep(1)
+        time.sleep(1.5)
     
     def startWeightSensor(self):
         self.send_message("StartWeightSensor")
-        time.sleep(1)
+        time.sleep(1.5)
 
     def stopWeightSensor(self):
         self.send_message("StopWeightSensor")
         self.serial_connection.reset_input_buffer()
-        time.sleep(1)
+        time.sleep(1.5)
 
 if __name__ == "__main__":
     try:
@@ -53,13 +53,16 @@ if __name__ == "__main__":
         ser2 = SerialCommunication(port="/dev/ttyS2")
         ser.startRFID()
         ser2.startRFID()
+        ser.startWeightSensor()
+        ser2.startWeightSensor()
+        
         count = 0
         while True:
-            last_message = ser.get_next_message()
+            #last_message = ser.get_next_message()
 
             last_message2 = ser2.get_next_message()
 
-            print("1: "+ last_message)
+            #print("1: "+ last_message)
             print("2: "+ last_message2)
 
     except Exception as e:
@@ -68,3 +71,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         ser.stopRFID()
         ser2.stopRFID()
+        ser.stopWeightSensor()
+        ser2.stopWeightSensor()

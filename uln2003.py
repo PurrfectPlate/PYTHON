@@ -4,19 +4,22 @@ import orangepi.one
 import sys
 from serial_communication import SerialCommunication
 
-class ULN2003:
+class ULN2003: 
     def __init__(self, in1=31, in2=33, in3=35, in4=37):
         self.IN1 = in1
         self.IN2 = in2
         self.IN3 = in3
         self.IN4 = in4
-
+        
         GPIO.setmode(orangepi.one.BOARD)
         GPIO.setup(self.IN1, GPIO.OUT)
         GPIO.setup(self.IN2, GPIO.OUT)
         GPIO.setup(self.IN3, GPIO.OUT)
         GPIO.setup(self.IN4, GPIO.OUT)
-
+    
+    def clean_channel(self):
+        GPIO.cleanup([self.IN1, self.IN2, self.IN3, self.IN4])
+        print("CLEANED UP GPIO FOR STEPPER MOTOR")
             
     def turn_stepper_forward(self, rotate_times = 0, delay=0.0016):
         
@@ -67,16 +70,17 @@ class ULN2003:
             self.turn_stepper_forward(min(512,max(rotate_times, 0)))
             rotate_times -= 512
             print(rotate_times)
-            #self.turn_stepper_backward(min(128,max(rotate_times, 0)))
-            #rotate_times -= 64
-            #print(rotate_times)
-GPIO.cleanup()
+
+
+
 
 if __name__ == "__main__":
     stepper = ULN2003(in1=8, in2=10,in3=12,in4=16)
     
-    #stepper = ULN2003()
-    stepper.turn_stepper(20)
+    stepper2 = ULN2003()
+    
+    stepper2.turn_stepper(1)
+    stepper.turn_stepper(1)
     #stepper.turn_stepper_forward(512)
     
     

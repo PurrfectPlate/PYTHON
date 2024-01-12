@@ -1,4 +1,5 @@
 from firebase_admin import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 class NotificationSender:
     def __init__(self, db):
@@ -38,6 +39,14 @@ class NotificationSender:
         return self.send_notification(message, device_name, petName=pet_name)
     
     def potential_food_consumption(self, possible_pets, original_pet_name, device_name):
-        pets_collection = self.db.collection()
-        message = f"Food for {original_pet_name} might have been consumed by: {', '.join(possible_pets)}"
+        
+        pets_collection = self.db.collection('List_of_Pets')
+        pet_names = []
+        
+        for rfid in possible_pets:
+            query = pets_collection.where(filter=FieldFilter('Rfid', '==', rfid)).get()
+            for doc in query:
+                pet_names.append(doc.get('Petname'))
+        
+        message = f"Food for {original_pet_name} might have been consumed by: {', '.join(pet_names)}"
         return self.send_notification(message, device_name, petName=original_pet_name)

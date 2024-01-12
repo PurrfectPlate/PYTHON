@@ -19,7 +19,7 @@ class Livestream:
             '-f', 'v4l2',
             '-framerate', '25',
             '-video_size', '640x480',
-            '-i', '/dev/video1',
+            '-i', '/dev/video0',
             '-f', 'lavfi',
             '-i', 'anullsrc=r=44100:cl=stereo',
             '-vf', 'format=yuv420p',
@@ -41,7 +41,7 @@ class Livestream:
             subprocess.run(
                 self.bash_command,
                 shell=True,
-                #stdout=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
                 #stderr=subprocess.DEVNULL
             )
             

@@ -16,8 +16,7 @@ from audio import AudioPlayer
 from smbus2 import SMBus
 import OPi.GPIO as GPIO
 import orangepi.pc
-#from pumpTest import WaterSensor
-from multiprocessing import Process
+#from pumpTest import WaterSensorController
 
 settings_file_path = './settings.json'
 
@@ -39,6 +38,8 @@ tasks_collection = firestoreDB.db.collection("Task")
 
 # Create an Event for notifying main thread.
 
+
+
 feedingSched = feedingSchedule(lcd2)
 
 tasks_done = threading.Event()
@@ -59,8 +60,6 @@ def schedule_feeding():
 
 def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
     
-    lcd2.clear()
-    lcd2.write_text("Task Updated..")
     
     for doc in col_snapshot:
         
@@ -71,19 +70,15 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
         type = doc.get("type")
         
         if type.lower() == "schedule":  
-            lcd2.clear()
-            lcd2.write_text("Updating Schedule...")
+            print("TASK: REFRESHING SCHEDULE")
             schedule_feeding()
             doc.reference.delete()
-            lcd2.clear()
-            lcd2.write_text("Schedule Updated!")
             break
         
         elif type.lower() == "speak_to_pet":
-            lcd2.clear()
-            lcd2.write_text("Playing Audio...")
+            print("TASK: SPEAKING TO DEVICE")
             audio = AudioPlayer(doc.get("document_id"))
-            lcd2.clear()
+            audio.play_sound()
             doc.reference.delete()
             break
         
@@ -99,10 +94,9 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
             
             try:
                 if doc_request == 'Start':
-                    lcd2.clear()
-                    lcd2.write_text("Starting Livestream...")
-                    #stop_livestream()
-                    #time.sleep(1)
+                    print("TASK: STARTING LIVESTREAM")
+                    stop_livestream()
+                    time.sleep(1)
                     try:
                         livestream_thread = threading.Thread(target=livestream_instance.run_livestream)
                         livestream_thread.start()
@@ -110,69 +104,56 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
                         print("Error: {e}")
                     doc_data['isliveNow'] = True
                     livestream_document.reference.update(doc_data)
-                    lcd2.clear()
-                    lcd2.write_text("Livestream Started!")
+                    print("TASK: LIVESTREAM STARTED!")
                 elif doc_request == 'Stop':
-                    lcd2.clear()
-                    lcd2.write_text("Stopping Livestream...")
+                    print("TASK: STOPPING LIVESTREAM")
                     stop_livestream()
                     doc_data['isliveNow'] = False
                     doc_data['ended'] = True
-                    doc_data['Youtube_url'] = ""
+                    doc_data['Youtube_Url'] = ""
                     livestream_document.reference.update(doc_data)
-                    lcd2.clear()
-                    lcd2.write_text("Stopped Livestream!")
+                    print("TASK: STOPPED LIVESTREAM!")
             except:
                 print("There's an error trying to livestream")
-                lcd2.clear()
-                lcd2.write_text("Error with Livestream.")
             doc.reference.delete()
-            pass
+            
         
-        elif type.lower() == "refresh_pet":
-            print("Refreshing Pet...")
-            pass
-
         elif type.lower() == "request_rfid":
             
-            ser = SerialCommunication("/dev/ttyS1")
+            ser = SerialCommunication(f"/dev/ttyS{int(doc.get('request'))}")
             
             ser.startRFID()
             
-            lcd2.clear()
-            lcd2.write_text("RFID REQUESTED")
-            lcd2.cursor.setPos(1,0)
-            lcd2.write_text("Place Tag/ Slot1")
 
-            print(f"Ready to Take RFID on {ser.port}")
+            print(f"REQUEST RFID: Ready to Take RFID on {ser.port}")
             while True:
 
                 rfid_message = ser.get_next_message()
                 if rfid_message == None:
                     continue
+                
+                try:
+                    if rfid_message.split(":")[1].lower().strip() == "none".lower():
+                        continue
+                except:
+                    continue
+                
                 try:
                     received_rfid = rfid_message.split(":")
                     if received_rfid[0].strip() == "RFID":
-                        print("RFID DETECTED")
-                        lcd2.clear()
-                        lcd2.write_text("RFID DETECTED!")
+                        print("REQUEST RFID: RFID DETECTED")
                         ser.stopRFID()
                         doc_ref = firestoreDB.db.collection("List_of_Pets").document(doc.get('document_id'))
                         pet_data = doc_ref.get().to_dict()
                         
                         if pet_data:
                             doc_ref.update({"Rfid": received_rfid[1].strip()})
-                            print(f"Updated Rfid field to {received_rfid[1].strip()} for document {doc.get('document_id')}")
-                            lcd2.cursor.setPos(1,0)
-                            lcd2.write_text("RFID UPDATED ON APP!")
+                            print(f"REQUEST RFID: Updated Rfid field to {received_rfid[1].strip()} for document {doc.get('document_id')}")
+
                             doc.reference.delete()
                             break
                         else:
                             print(f"Document {doc_data['document_id']} not found")
-                            lcd2.clear()
-                            lcd2.write_text("Error:")
-                            lcd2.cursor.setPos(1,0)
-                            lcd2.write_text("Data missing!")
                             break
 
                 except IndexError:
@@ -183,43 +164,43 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
                     break
 
         elif type.lower() == "request_weight":
-            ser = SerialCommunication("/dev/ttyS1")
+            ser = SerialCommunication(f"/dev/ttyS{int(doc.get('request'))}")
             ser.startWeightSensor()
             
-            lcd2.clear()
-            lcd2.write_text("WEIGHT REQUESTED")
-            lcd2.cursor.setPos(1,0)
-            lcd2.write_text("Place Pet/Slot 1")
 
-            print(f"Ready to Take Weight on {ser.port}")
+            print(f"REQUEST WEIGHT: Ready to Take Weight on {ser.port}")
             while True:
 
                 weight_message = ser.get_next_message()
                 if weight_message == None:
                     continue
+                
+                try:
+                    if weight_message.split(":")[1].lower().strip() == "none".lower():
+                        continue
+                except:
+                    continue
+                
+                
                 try:
                     received_weight = weight_message.split(":")
                     if received_weight[0].strip() == "Weight Stable":
-                        print("Weight DETECTED")
-                        lcd2.clear()
-                        lcd2.write_text("Weight DETECTED!")
+                        if received_weight[1].strip() == "NONE":
+                            continue
+                        print("REQUEST WEIGHT: Weight DETECTED")
                         ser.stopWeightSensor()
                         doc_ref = firestoreDB.db.collection("List_of_Pets").document(doc.get('document_id'))
                         pet_data = doc_ref.get().to_dict()
                         
                         if pet_data:
                             doc_ref.update({"Weight": received_weight[1].strip()})
-                            print(f"Updated Weight field to {received_weight[1].strip()} for document {doc.get('document_id')}")
-                            lcd2.cursor.setPos(1,0)
-                            lcd2.write_text("Weight UPDATED ON APP!")
+                            print(f"REQUEST WEIGHT: Updated Weight field to {received_weight[1].strip()} for document {doc.get('document_id')}")
+
                             doc.reference.delete()
                             break
                         else:
                             print(f"Document {doc_data['document_id']} not found")
-                            lcd2.clear()
-                            lcd2.write_text("Error:")
-                            lcd2.cursor.setPos(1,0)
-                            lcd2.write_text("Data missing!")
+
                             break
 
                 except IndexError:
@@ -256,13 +237,16 @@ if __name__ == "__main__":
         query_watch = tasks_collection.on_snapshot(tasks_RealtimeUpdate)
     except Exception as e:
         print("e")
+        
+    
+    
     try:
         print(f"Username: {get_username()}")
         print(f"Password: {get_password()}")
         upload_credentials(get_username(), get_password())
         schedule_feeding()
         
-        options_list = ['Configure WiFi', 'Check IP Address', 'Check User/Pass', 'FORCE STOP LIVE']
+        options_list = ['Configure WiFi', 'Check IP Address', 'Check User/Pass']
         max_length = 15
         options_list = [f'{option:<{max_length}}' for option in options_list]
         
@@ -295,10 +279,6 @@ if __name__ == "__main__":
                         show_credentials(lcd)
                         reset()
                         break
-                    case 3:
-                        stop_livestream()
-                        reset()
-                        break
             
             elif keyboard.is_pressed('up'):
                 selected_option = max(0, selected_option - 1)
@@ -321,3 +301,20 @@ if __name__ == "__main__":
         tasks_done.set()
         GPIO.cleanup()
         print("Program terminated.")
+    
+    finally:
+        ser2 = SerialCommunication(port="/dev/ttyS2")
+        ser1 = SerialCommunication(port="/dev/ttyS1")
+        ser1.stopWeightSensor()
+        ser1.stopRFID()
+        ser2.stopWeightSensor()
+        ser2.stopRFID()
+        lcd.clear()
+        lcd.backlight.off()
+        lcd2.backlight.off()
+        lcd2.clear()
+        query_watch.unsubscribe() 
+        tasks_done.set()
+        GPIO.cleanup()
+        print("Program Terminated.")
+        
