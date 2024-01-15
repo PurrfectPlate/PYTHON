@@ -1,3 +1,5 @@
+#PET FEEDER SERVICE: petfeeder.service
+
 import firestoreDB
 import threading
 import LCD
@@ -16,7 +18,7 @@ from audio import AudioPlayer
 from smbus2 import SMBus
 import OPi.GPIO as GPIO
 import orangepi.pc
-#from pumpTest import WaterSensorController
+import subprocess
 
 settings_file_path = './settings.json'
 
@@ -72,6 +74,17 @@ def tasks_RealtimeUpdate(col_snapshot, changes, read_time):
         if type.lower() == "schedule":  
             print("TASK: REFRESHING SCHEDULE")
             schedule_feeding()
+            doc.reference.delete()
+            break
+        
+        elif type.lower() == "dispense_water":
+            
+            subprocess.run(
+                "systemctl start petfeeder_water.service",
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                #stderr=subprocess.DEVNULL
+            )
             doc.reference.delete()
             break
         
@@ -270,15 +283,15 @@ if __name__ == "__main__":
                     case 0:
                         LCD.configure_wifi(lcd)
                         reset()
-                        break
+                        continue
                     case 1:
                         LCD.check_ip_address(lcd)
                         reset()
-                        break
+                        continue
                     case 2:
                         show_credentials(lcd)
                         reset()
-                        break
+                        continue
             
             elif keyboard.is_pressed('up'):
                 selected_option = max(0, selected_option - 1)

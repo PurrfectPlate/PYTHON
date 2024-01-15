@@ -28,7 +28,8 @@ class feedingSchedule:
         self.stepper = [ULN2003(in1=8, in2=10,in3=12,in4=16), ULN2003()]
         self.lastPlayed = 0
         self.notif = NotificationSender(firestoreDB.db)
-
+        self.lcd_write("WAITING SCHED", 1)
+        self.lcd_write("WAITING SCHED", 2)
     def get_local_schedules(self):
         return self.local_schedules
 
@@ -240,7 +241,8 @@ class feedingSchedule:
             if 0.9 * weight <= weight_value <= 1.1 * weight:
                 weightData.append(weight_value)
                 print(f"Appended {weight_value}")
-                self.lcd_write(f"Weight:{weight_value}kg", slot)
+                self.lcd_write("Getting Weigh", slot)
+                #self.lcd_write(f"Weight:{weight_value}kg", slot)
 
             if len(weightData) == 20:
                 print("Already got 20")
@@ -255,7 +257,8 @@ class feedingSchedule:
         start_time = time.time()
         while time.time() - start_time < seconds:
             
-            self.lcd_write(f"Time left: {seconds - int(time.time() - start_time)}", slot)
+            self.lcd_write("DETECT RFID", slot)
+            #self.lcd_write(f"Time left: {seconds - int(time.time() - start_time)}", slot)
             print(f"Remaining time for slot {slot}: {seconds - int(time.time() - start_time)} seconds.")
         
             rfid_message = ser.get_next_message()
@@ -335,12 +338,10 @@ class feedingSchedule:
             print(f"Error on feed_pet: {e}")
             traceback.print_exc()
             exception_traceback = traceback.format_exc()
-            line_number = int(exception_traceback.splitlines()[-1].split(",")[1].split(" ")[-1])
             print(f"Exception occurred on line {line_number}")
         finally:
             print(f"DONE FEEDING SLOT {feed_slot}")
-            self.lcd_write("DONE FEEDING", feed_slot)
-            print(f"DONE FEEDING SLOT {feed_slot}")
+            self.lcd_write("WAITING SCHED", feed_slot)
 
     # Function to schedule pet feeding
     def schedule_feeding(self, pet_data):

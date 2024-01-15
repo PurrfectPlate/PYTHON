@@ -10,7 +10,7 @@ class WaterSensorController:
         self.sensor_pin = sensor_pin
         self.relay_pin = relay_pin
         self.notification_sender = NotificationSender(firestoreDB.db)
-        self.max_no_water_time = 10  # Maximum time without water (in seconds)
+        self.max_no_water_time = 300  # Maximum time without water (in seconds)
         self.no_water_timer = 0
         self.on = True
         
